@@ -2,6 +2,14 @@ import serial
 import asyncio
 from serial.tools import list_ports
 
+def xor_encrypt(message, password):
+    pwd = password.encode()
+    msg = message.encode()
+    encrypted = bytearray()
+    for i in range(len(msg)):
+        encrypted.append(msg[i] ^ pwd[i % len(pwd)])
+    return encrypted
+
 class Colors:
     BLACK   = '\033[30m'
     RED     = '\033[31m'
@@ -49,12 +57,14 @@ async def main():
     port = pick_serial_port()
     ser = serial.Serial(port, 115200, timeout=1)
     serial_task = asyncio.create_task(read_serial_async(ser))
+    password = "1234"
     try:
         while True:
-            msg = await asyncio.get_event_loop().run_in_executor(None, input, "Send message: ")
+            msg = await asyncio.get_event_loop().run_in_executor(None, input, "")
             msg = msg.strip()
             if msg:
-                ser.write((msg + '\n').encode())
+                encrypted = xor_encrypt(msg, password)
+                ser.write(encrypted + b'\n')
     except KeyboardInterrupt:
         serial_task.cancel()
         ser.close()
